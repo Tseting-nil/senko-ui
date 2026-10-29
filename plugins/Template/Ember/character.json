@@ -1,0 +1,40 @@
+{
+    // === 必填（身分與描述）===
+    "source": "plugins/Template/Ember/character.json",
+    "creator": "Senko UI",
+    "description": "插件範本的示範主題 · 緩慢上升的火星",
+    "description_en": "Demo theme of the plugin template · Slowly rising sparks",
+
+    // === 內部定義（主題核心屬性）===
+    "key": "Ember",
+    "name": "餘燼",
+    "name_en": "Ember",
+    "tag": "TEMPLATE",
+    "glyph": "燼",
+    "shape": "diamond", // 按鈕造型: diamond / circle / square
+
+    // === 視覺與特效（必要）===
+    "dim": 0.5,          // 遮罩濃度 0.0 ~ 1.0，越低壁紙越亮，越高文字越清晰
+    "particle": "spark", // 粒子樣式: glow / petal / ember / bubble / dust / spark
+
+    // === 動畫細節（建議保留）===
+    "constellation": "S E N K O   U I   T E M P L A T E", // 側欄頂部副標題與開場文字
+
+    // === 完整色票（必要）===
+    "palette": {
+        "win0": "#211612", "win1": "#3A241B",                                                       // 視窗主體背景漸層（左上 -> 右下）
+        "winStroke": "#E89B74", "hairline": "#E8B399",                                              // 視窗外邊框 / 細分割線
+        "divider": "#D98C64", "sidebar": "#1C120E",                                                 // 卡片內部分隔線 / 側邊導航欄底色
+        "card": "#2C1B14", "cardStroke": "#D98C64",                                                 // 功能區塊卡片底色 / 卡片外框線
+        "text": "#FFF2EC", "text2": "#E8C8BA", "text3": "#B59688",                                  // 主要文字 / 次要文字 / 提示文字
+        "accent": "#FF8C5A", "accent2": "#FFAE85",                                                  // 第一主強調色 / 第二強調輔助色
+        "segTrack": "#140D0A", "segPill": "#FF8C5A", "field": "#FFF0E8", "fieldStroke": "#D98C64",  // 控制元件底槽 / 滑塊 / 輸入框背景 / 邊框
+        "good": "#8FE3A2", "warn": "#FFC875", "toast": "#1C120E",                                   // 成功提示色 / 警告提示色 / 浮動通知底色
+        "radius": 12, "cardRadius": 9                                                               // 視窗圓角半徑 / 卡片圓角半徑 (px)
+    },
+
+    // === 圖片檔案清單（必要）===
+    "images": [
+        // 第一張預設為 Background 壁紙，若有第二張則為 Character 角色層（透明 PNG）
+    ]
+}

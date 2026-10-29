@@ -1,0 +1,29 @@
+{
+    "source": "plugins/Genshin/Ganyu/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "循霜而行 · 冰藍綢緞與清心花紋",
+    "description_en": "Walking with the frost · Cryo silk and Qingxin motif",
+    "key": "Ganyu",
+    "name": "甘雨",
+    "name_en": "Ganyu",
+    "tag": "CRYO",
+    "glyph": "冰",
+    "shape": "diamond",
+    "dim": 0.42,
+    "particle": "glow",
+    "constellation": "S I N U S   U N I C O R N I S",
+    "palette": {
+        "win0": "#11263C", "win1": "#274658",
+        "winStroke": "#8FE6F6", "hairline": "#8FE6F6",
+        "divider": "#EAF4FF", "sidebar": "#0C192B",
+        "card": "#152A41", "cardStroke": "#A0CDE7",
+        "text": "#EAF4FF", "text2": "#BED2E5", "text3": "#94ABC4",
+        "accent": "#8FE6F6", "accent2": "#B6A8FF",
+        "segTrack": "#000000", "segPill": "#FFFFFF", "field": "#FFFFFF", "fieldStroke": "#FFFFFF",
+        "good": "#6FF0C0", "warn": "#FFC978", "toast": "#0C192B",
+        "radius": 12, "cardRadius": 9
+    },
+    "images": [
+        "ganyu-bg-1080.jpg"
+    ]
+}

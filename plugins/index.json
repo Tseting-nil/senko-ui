@@ -1,0 +1,38 @@
+{
+    "plugins": [
+        {
+            "name": "Genshin",
+            "label": "原神",
+            "label_en": "Genshin",
+            "characters": [
+                "Ganyu",
+                "Yae",
+                "Yoimiya",
+                "Nahida",
+                "Furina",
+                "Faruzan",
+                "Zhongli"
+            ],
+            "default": false
+        },
+        {
+            "name": "Endfield",
+            "label": "終末地",
+            "label_en": "Endfield",
+            "characters": [
+                "Rossi",
+                "Si"
+            ],
+            "default": false
+        },
+        {
+            "name": "Template",
+            "label": "範本",
+            "label_en": "Template",
+            "characters": [
+                "Ember"
+            ],
+            "default": false
+        }
+    ]
+}

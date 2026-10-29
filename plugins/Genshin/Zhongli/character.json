@@ -1,0 +1,29 @@
+{
+    "source": "plugins/Genshin/Zhongli/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "磐石亦有溫度 · 玄金磐石與岩契回紋",
+    "description_en": "Even stone holds warmth · Golden monolith and stone contracts",
+    "key": "Zhongli",
+    "name": "鍾離",
+    "name_en": "Zhongli",
+    "tag": "GEO",
+    "glyph": "岩",
+    "shape": "square",
+    "dim": 0.6,
+    "particle": "dust",
+    "constellation": "L A P I S   D E I",
+    "palette": {
+        "win0": "#342718", "win1": "#5F4424",
+        "winStroke": "#DAB77A", "hairline": "#EAC78F",
+        "divider": "#C0A177", "sidebar": "#241F19",
+        "card": "#382E22", "cardStroke": "#CEAC74",
+        "text": "#FFF4DF", "text2": "#E3CFAC", "text3": "#BCA788",
+        "accent": "#F5C969", "accent2": "#DDA556",
+        "segTrack": "#1F1B16", "segPill": "#F3D390", "field": "#F2D9A5", "fieldStroke": "#D3B77D",
+        "good": "#D6D7A2", "warn": "#F5BF71", "toast": "#241F19",
+        "radius": 8, "cardRadius": 6
+    },
+    "images": [
+        "zhongli-bg.jpg"
+    ]
+}

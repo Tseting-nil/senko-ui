@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Genshin/Nahida/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "聆聽萬物生長 · 新芽透玉與月蓮金紋",
+    "description_en": "Listening to all things grow · Tender shoots and Kalpalata gold",
+    "key": "Nahida",
+    "name": "納西妲",
+    "name_en": "Nahida",
+    "tag": "DENDRO",
+    "glyph": "草",
+    "shape": "circle",
+    "dim": 0.58,
+    "particle": "glow",
+    "constellation": "S A P I E N T I A   O R O M A S D I S",
+    "palette": {
+        "win0": "#173525", "win1": "#35572F",
+        "winStroke": "#D0E8B3", "hairline": "#E0D9A4",
+        "sidebar": "#142D23", "card": "#18382A", "cardStroke": "#C6E2AD",
+        "text": "#F5FBEA", "text2": "#D5E3C9", "text3": "#A8BCA3",
+        "accent": "#C3EDA6", "accent2": "#8BCDA2",
+        "segTrack": "#07180F", "segPill": "#D7EDBE", "field": "#F0F9DC", "fieldStroke": "#D3E7B8",
+        "good": "#BFE6AB", "warn": "#E6CF93", "toast": "#10251C",
+        "radius": 12, "cardRadius": 10
+    },
+    "images": [
+        "nahida-bg-1080.jpg"
+    ]
+}

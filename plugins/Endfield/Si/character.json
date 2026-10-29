@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Endfield/Si/character.json",
+    "creator": "Wallpaper Engine ，Gong Wong",
+    "description": "墨痕與櫻 · 翠綠與墨青",
+    "description_en": "Ink and blossoms · Emerald and deep ink",
+    "key": "Si",
+    "name": "祀",
+    "name_en": "Si",
+    "tag": "ENDFIELD",
+    "glyph": "祀",
+    "shape": "diamond",
+    "dim": 0.58,
+    "particle": "petal",
+    "constellation": "A R K N I G H T S   E N D F I E L D",
+    "palette": {
+        "win0": "#0F1E26", "win1": "#1C3A44",
+        "winStroke": "#CDE8F0", "hairline": "#CDE8F0",
+        "sidebar": "#0D1A21", "card": "#15303A", "cardStroke": "#A9D4DE",
+        "text": "#F2F8FA", "text2": "#CFE0E6", "text3": "#9DB6BF",
+        "accent": "#8FE3C8", "accent2": "#F2B8C6",
+        "segTrack": "#07131A", "segPill": "#BDEBDD", "field": "#E6F6F2", "fieldStroke": "#B9DCD8",
+        "good": "#9FE3B8", "warn": "#F2D27A", "toast": "#0D1A21",
+        "radius": 12, "cardRadius": 9
+    },
+    "images": [
+        "si-4k.jpg"
+    ]
+}

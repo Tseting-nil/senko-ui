@@ -1,0 +1,29 @@
+{
+    "source": "plugins/Genshin/Yoimiya/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "煙火映星河 · 暖金煙火與金魚繩飾",
+    "description_en": "Fireworks over the river of stars · Warm fireworks and goldfish cords",
+    "key": "Yoimiya",
+    "name": "宵宮",
+    "name_en": "Yoimiya",
+    "tag": "PYRO",
+    "glyph": "火",
+    "shape": "circle",
+    "dim": 0.58,
+    "particle": "ember",
+    "constellation": "C A R A S S I U S   A U R A T U S",
+    "palette": {
+        "win0": "#4C2417", "win1": "#783E22",
+        "winStroke": "#F6C899", "hairline": "#F6D6A2",
+        "sidebar": "#3E2018", "card": "#4F2A20", "cardStroke": "#F6C695",
+        "text": "#FFF5E5", "text2": "#EAD1B7", "text3": "#C5A58B",
+        "accent": "#FFD19B", "accent2": "#F09173",
+        "segTrack": "#281611", "segPill": "#FFD19B", "field": "#FFF0D5", "fieldStroke": "#F6C695",
+        "good": "#D5DC9E", "warn": "#FFB776", "toast": "#351A13",
+        "radius": 11, "cardRadius": 8
+    },
+    "images": [
+        "yoimiya-bg-1080.jpg",
+        "yoimiya-character.png"
+    ]
+}

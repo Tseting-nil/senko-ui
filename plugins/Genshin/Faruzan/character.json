@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Genshin/Faruzan/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "風起，翻開新章 · 青金機關與風閱古卷",
+    "description_en": "The wind rises, a new chapter opens · Teal mechanism and ancient scrolls",
+    "key": "Faruzan",
+    "name": "珐露珊",
+    "name_en": "Faruzan",
+    "tag": "ANEMO",
+    "glyph": "風",
+    "shape": "square",
+    "dim": 0.52,
+    "particle": "dust",
+    "constellation": "F L O S C U L I   I M P L E X I",
+    "palette": {
+        "win0": "#143C3D", "win1": "#29574E",
+        "winStroke": "#D3DCC5", "hairline": "#E9D4A1",
+        "sidebar": "#123C43", "card": "#1A484E", "cardStroke": "#B9D8C8",
+        "text": "#F7F6E9", "text2": "#D6E7DD", "text3": "#ABC8C1",
+        "accent": "#B1F0D6", "accent2": "#E6CB94",
+        "segTrack": "#082C34", "segPill": "#B4E7D6", "field": "#DAEEDC", "fieldStroke": "#C6D8BD",
+        "good": "#B7E4C7", "warn": "#E8CF9F", "toast": "#102E36",
+        "radius": 12, "cardRadius": 9
+    },
+    "images": [
+        "faruzan-bg-1080.jpg"
+    ]
+}

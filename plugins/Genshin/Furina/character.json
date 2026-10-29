@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Genshin/Furina/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "傾聽水的迴響 · 水色帷幕與銀邊緞帶",
+    "description_en": "Hear the water's echo · Aquamarine curtains and silver ribbon",
+    "key": "Furina",
+    "name": "芙寧娜",
+    "name_en": "Furina",
+    "tag": "HYDRO",
+    "glyph": "水",
+    "shape": "circle",
+    "dim": 0.4,
+    "particle": "bubble",
+    "constellation": "A N I M U L A   C H O R A G I",
+    "palette": {
+        "win0": "#0D1F41", "win1": "#1E4464",
+        "winStroke": "#BDDFF7", "hairline": "#D9D3B9",
+        "sidebar": "#102543", "card": "#173554", "cardStroke": "#B8D9F2",
+        "text": "#F3F9FF", "text2": "#C9DEF3", "text3": "#9BB7D4",
+        "accent": "#A6E2FA", "accent2": "#AABCF4",
+        "segTrack": "#08162D", "segPill": "#C8E9FB", "field": "#E3F5FF", "fieldStroke": "#BFD9F2",
+        "good": "#ADDDD9", "warn": "#E9D4A4", "toast": "#0B1B35",
+        "radius": 11, "cardRadius": 8
+    },
+    "images": [
+        "furina-bg-1080.jpg"
+    ]
+}

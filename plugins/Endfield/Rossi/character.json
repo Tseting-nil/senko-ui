@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Endfield/Rossi/character.json",
+    "creator": "Wallpaper Engine ，Gong Wong",
+    "description": "午後的光 · 暖陽與金塵",
+    "description_en": "Afternoon light · Warm sunlight and golden dust",
+    "key": "Rossi",
+    "name": "洛西",
+    "name_en": "Rossi",
+    "tag": "ENDFIELD",
+    "glyph": "洛",
+    "shape": "square",
+    "dim": 0.5,
+    "particle": "dust",
+    "constellation": "A R K N I G H T S   E N D F I E L D",
+    "palette": {
+        "win0": "#3A2614", "win1": "#6B4A26",
+        "winStroke": "#F6D49C", "hairline": "#F6DCA8",
+        "sidebar": "#2E1F12", "card": "#47301C", "cardStroke": "#F2CC94",
+        "text": "#FFF6E6", "text2": "#EBD6B8", "text3": "#C4A887",
+        "accent": "#FFD58A", "accent2": "#E8A35C",
+        "segTrack": "#24170C", "segPill": "#FFD58A", "field": "#FFF1D6", "fieldStroke": "#F2CC94",
+        "good": "#D8DC9E", "warn": "#FFB776", "toast": "#2E1F12",
+        "radius": 11, "cardRadius": 8
+    },
+    "images": [
+        "rossi-1080.jpg"
+    ]
+}

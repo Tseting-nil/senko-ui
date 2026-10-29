@@ -1,0 +1,29 @@
+{
+    "source": "plugins/Genshin/Yae/character.json",
+    "creator": "xiaoyeuzixi/HanaBi-ui-Genshin",
+    "description": "浮世笑百姿 · 緋櫻薄絹與鳴神金飾",
+    "description_en": "Countless faces of the floating world · Scarlet sakura and Narukami gold",
+    "key": "Yae",
+    "name": "八重神子",
+    "name_en": "Yae Miko",
+    "tag": "ELECTRO",
+    "glyph": "雷",
+    "shape": "diamond",
+    "dim": 0.6,
+    "particle": "petal",
+    "constellation": "D I V I N A   V U L P E S",
+    "palette": {
+        "win0": "#381C37", "win1": "#552C49",
+        "winStroke": "#E6B4D7", "hairline": "#EDC9A3",
+        "sidebar": "#301C35", "card": "#3E2541", "cardStroke": "#F1C1DD",
+        "text": "#FFF0F8", "text2": "#E7CBDF", "text3": "#BE9DB9",
+        "accent": "#F2B8DF", "accent2": "#BA90F5",
+        "segTrack": "#1F102B", "segPill": "#E8B5D7", "field": "#FCE5F6", "fieldStroke": "#E3BED5",
+        "good": "#D8C19A", "warn": "#F0C995", "toast": "#2A1530",
+        "radius": 12, "cardRadius": 9
+    },
+    "images": [
+        "yae-bg-1080.jpg",
+        "yae-character.png"
+    ]
+}
