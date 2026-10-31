@@ -175,6 +175,7 @@ Window:AddThemeTab()   -- 內建主題頁（主題庫、壁紙、插件管理、
 | `MinSize` | Vector2 | `500 × 330` | 拖曳縮放的最小尺寸 |
 | `ToggleKey` | KeyCode / string | `LeftAlt` | 顯示 / 隱藏介面；主題頁可改並存入 `settings.json` |
 | `Intro` | bool | `true` | 開場動畫 |
+| `FlatRender` | bool | `true` | 平面渲染：視窗內容直接原生渲染，避免 CanvasGroup 每幀重新合成導致捲動掉 FPS；縮小/還原仍用 CanvasGroup 淡入淡出。可用 `Window:SetFlatRender(bool)` 切換 |
 | `FontPercent` | number | `112` | 字號百分比（100–125） |
 | `SaveSettings` | bool | `true` | 是否讀寫 `SenkoUI/settings.json` |
 | `MobileButton` | bool | `true` | 觸控裝置顯示懸浮按鈕 |

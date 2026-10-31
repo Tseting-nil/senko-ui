@@ -1557,7 +1557,11 @@ function SenkoUI:CreateWindow(opts)
         Visible = false,
         Parent = holder,
     })
+    self:_corner(self._flat, "radius")
     self._isFlat = false
+    -- 平面渲染（預設開）：CanvasGroup 每幀要把整個視窗合成成貼圖，內容多（數百個 UIStroke/UIGradient）時
+    -- 捲動會掉 FPS；平面模式直接原生渲染。縮小/還原與銷毀時仍會回到 CanvasGroup 做淡入淡出。
+    self.flatRender = opts.FlatRender ~= false
 
     -- 視窗底色：UIGradient 若直接掛在 CanvasGroup 上會把所有子物件一起染色，所以拆成獨立底板
     local background = new("Frame", {
@@ -2072,6 +2076,15 @@ function SenkoUI:CreateWindow(opts)
         self:_playIntro()
     end
 
+    -- 平面渲染：開場動畫期間仍用 CanvasGroup（淡入），結束後再切換
+    if self.flatRender then
+        task.delay((opts.Intro ~= false and SenkoUI.Animations) and 3 or 0, function()
+            if self.flatRender and self.Visible and not self._destroyed then
+                self:_setFlat(true)
+            end
+        end)
+    end
+
     self._ready = true
     createdWindows = createdWindows + 1
     openWindows[self] = true
@@ -2582,10 +2595,18 @@ function Window:Restore()
     end)
     -- 淡入結束後，最大化狀態換回平面畫布
     task.delay(SenkoUI.Animations and 0.42 or 0, function()
-        if self.Visible and self._maximized and not self._destroyed then
+        if self.Visible and (self._maximized or self.flatRender) and not self._destroyed then
             self:_setFlat(true)
         end
     end)
+end
+
+-- 切換平面渲染（true = 捲動較順、無整體淡入淡出；false = CanvasGroup）
+function Window:SetFlatRender(v)
+    self.flatRender = v and true or false
+    if self.Visible then
+        self:_setFlat(self.flatRender or self._maximized)
+    end
 end
 
 function Window:Toggle()
@@ -2600,7 +2621,7 @@ function Window:ToggleMaximize()
     local holder = self.Holder
     if self._maximized then
         self._maximized = false
-        self:_setFlat(false)
+        self:_setFlat(self.flatRender)
         tween(holder, { Size = self._prevSize, Position = self._prevPos }, 0.4)
     else
         self._maximized = true
