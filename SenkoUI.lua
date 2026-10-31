@@ -96,8 +96,26 @@ local function pad(obj, top, right, bottom, left)
     })
 end
 
+-- 捲動中旗標：捲動時整個 CanvasGroup 每幀都要重新合成，這段期間暫停背景動畫與補間，
+-- 內容滑過游標時的 hover 動畫也改成瞬間設定，捲動停止約 0.18 秒後自動恢復
+local SCROLL_QUIET = 0.18
+local scrollQuietUntil = 0
+
+local function markScrolling()
+    scrollQuietUntil = os.clock() + SCROLL_QUIET
+end
+
+local function isScrolling()
+    return os.clock() < scrollQuietUntil
+end
+
+-- 監聽 ScrollingFrame 的捲動位置，捲動時標記旗標
+local function hookScroll(win, scroller)
+    win:_conn(scroller:GetPropertyChangedSignal("CanvasPosition"):Connect(markScrolling))
+end
+
 local function tween(obj, props, duration, style, direction)
-    if not SenkoUI.Animations or duration == 0 then
+    if not SenkoUI.Animations or duration == 0 or isScrolling() then
         for k, v in pairs(props) do
             obj[k] = v
         end
@@ -2035,6 +2053,9 @@ function SenkoUI:CreateWindow(opts)
             return
         end
         clock = clock + dt
+        if isScrolling() then
+            return
+        end
         emblem.Spinner.Rotation = (clock * 14) % 360
         watermark.Spinner.Rotation = (-clock * 4) % 360
         floatEmblem.Spinner.Rotation = (clock * 14) % 360
@@ -2862,9 +2883,11 @@ function Window:AddTab(opts)
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarThickness = 3,
         ScrollingDirection = Enum.ScrollingDirection.Y,
+        ElasticBehavior = Enum.ElasticBehavior.Never,
         Visible = false,
         Parent = self._pages,
     })
+    hookScroll(self, page)
     self:_bind(page, "ScrollBarImageColor3", "text3")
     pad(page, 12, 16, 16, 16)
     new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder, Parent = page })
