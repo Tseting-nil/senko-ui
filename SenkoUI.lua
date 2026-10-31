@@ -65,6 +65,10 @@ end
 
 local function new(class, props, children)
     local obj = Instance.new(class)
+    -- 文字由 Senko 自己的 i18n 負責；關掉 Roblox 自動翻譯，避免英文介面被機翻成中文（例如 Name → 名稱、Misc → 其他）
+    if class == "TextLabel" or class == "TextButton" or class == "TextBox" then
+        obj.AutoLocalize = false
+    end
     local parent
     for k, v in pairs(props or {}) do
         if k == "Parent" then
