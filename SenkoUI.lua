@@ -2339,6 +2339,10 @@ function Window:_moveIndicator(instant)
         return
     end
     local ind = self._indicator
+    -- 視窗已銷毀（延遲呼叫晚到）或按鈕尚未掛上時直接略過，避免丟錯進主控台
+    if self._destroyed or not ind or not ind.Parent or not (tab._button and tab._button.Parent) then
+        return
+    end
     ind.Visible = true
     -- AbsolutePosition 已含 UIScale，換算回未縮放的座標
     local scale = self._holderScale.Scale * self._mainScale.Scale
