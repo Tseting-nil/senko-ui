@@ -85,6 +85,7 @@ plugins/
     "description": "風起，翻開新章 · 青金機關與風閱古卷",   // 主題卡名稱下方的說明（繁體中文）
 
     // === 選填 ===
+    "source_url": "https://example.com/original-work",   // 壁紙原始作品頁面（只供查證來源，介面不顯示）
     "description_en": "The wind rises, a new chapter opens", // 英文模式的說明
 
     // === 主題屬性 ===
@@ -122,6 +123,7 @@ plugins/
 | 欄位 | 必填 | 說明 |
 |---|---|---|
 | `source` / `creator` / `description` | ✓ | 身分與說明 |
+| `source_url` | – | 壁紙原始作品頁面，方便查證來源；使用第三方素材時建議填寫 |
 | `palette` | ✓ | 色票，缺少時整個角色略過 |
 | `description_en` / `name_en` / `region_en` | – | 英文模式使用，缺少時退回中文欄位 |
 | `key` | – | 主題鍵名，不可與其他主題重複 |

@@ -584,7 +584,7 @@ console:SetLineNumbers(false)
 
 **原神插件（`plugins/Genshin/`）**：甘雨 `Ganyu`、八重神子 `Yae`、宵宮 `Yoimiya`、納西妲 `Nahida`、芙寧娜 `Furina`、珐露珊 `Faruzan`、鍾離 `Zhongli`
 
-**終末地插件（`plugins/Endfield/`）**：洛西 `Rossi`、祀 `Si`（壁紙來源：Steam Wallpaper Engine · 作者：Gong Wong）、祀 `Si_1`（壁紙來源：X · 作者：默椏 Myoasis）
+**終末地插件（`plugins/Endfield/`）**：洛西 `Rossi`、祀 `Si`、祀 `Si_1`（壁紙來源見[致謝與授權](#致謝與授權)）
 
 **插件範本（`plugins/Template/`）**：餘燼 `Ember`（無圖片，示範色票與粒子）
 
@@ -770,5 +770,8 @@ SenkoUI/
 - **原版使用的第三方元件**：Dear ImGui（MIT）、stb_image（Public Domain / MIT）、Source Sans 3（SIL OFL 1.1）。本庫沒有使用這些元件的程式碼。
 - **原版倉庫目前沒有附 LICENSE 檔**。公開散布原神插件的圖片前，建議先取得原作者同意。
 - **圖示**：[Lucide](https://lucide.dev/)（ISC）；線上補抓使用 Iconify 與 images.weserv.nl。
-- **終末地壁紙**：Steam Wallpaper Engine · 作者：Gong Wong；X · 作者：默椏 Myoasis（`Si_1`）。版權屬於原作者。
+- **終末地壁紙**（版權屬於各原作者）：
+  - `Rossi`：Steam Wallpaper Engine · 作者：TOH but everytime iDie iWhimper · [作品頁面](https://steamcommunity.com/sharedfiles/filedetails/?id=3715441992)
+  - `Si`：Steam Wallpaper Engine · 作者：Gong Wong · [作品頁面](https://steamcommunity.com/sharedfiles/filedetails/?id=3822228518)
+  - `Si_1`：X · 作者：默椏 Myoasis · [原始貼文](https://x.com/Myyoasis/status/2118660866874978743)
 - 《原神》角色、名稱與相關美術版權屬於 **HoYoverse**；《明日方舟：終末地》屬於 **鷹角網絡（Hypergryph）**。本專案為非官方的同人作品，與上述公司及 Roblox 無關。
