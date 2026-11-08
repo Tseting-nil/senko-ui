@@ -203,6 +203,8 @@ Window:AddThemeTab()   -- 內建主題頁（主題庫、壁紙、插件管理、
 | `Window:GetFooter()` | 目前左下角顯示的文字（隱藏時為 `nil`） |
 | `Window:SetFontScale(n)` | 字號倍率 1.00–1.25 |
 | `Window:Notify(opts)` | 通知。`opts`：`Title`、`Content`、`Duration`（秒，預設 4）、`Callback`；也可直接傳字串 |
+| `Window:PopupModal(opts)` | 置中的模態視窗，見[彈出視窗](#彈出視窗-popup) |
+| `Window:PopupCanvas(opts)` | 跟隨元素的彈出選單，見[彈出視窗](#彈出視窗-popup) |
 | `Window:Minimize()` / `Restore()` / `Toggle()` | 最小化、還原、切換 |
 | `Window:ToggleMaximize()` | 最大化 / 還原大小 |
 | `Window:SetToggleKey(keycode)` | 更改切換鍵，寫入 `settings.json` |
@@ -327,6 +329,83 @@ dd:Refresh(otherFunction, true)   -- 換成另一個函式；傳陣列則改回�
 - 要傳函式本身：寫 `Options = GetAllplayer`，不要加括號。`GetAllplayer()` 會在建立時呼叫一次，之後就是固定清單。
 - 函式出錯或沒有回傳陣列時，會在主控台警告，並保留上一次的清單。
 - 已選取的值不在新清單中時不會被清除，也不會觸發 `Callback`。
+
+### AddRow 橫向排列
+
+把控件排成一列並平均分配寬度，分頁、區塊與彈出視窗都能用：
+
+```lua
+local Row = Section:AddRow({ Gap = 8 })   -- Gap 可省略，預設 8
+Row:AddButton({ Title = "儲存", Style = "Primary", Callback = function() end })
+Row:AddButton({ Title = "重設", Callback = function() end })
+```
+
+### 彈出視窗 (Popup)
+
+彈出視窗本身就是區塊，所有 `AddXxx` 控件都能放進去。`PopupModal`、`PopupCanvas` 也可以從 `Tab`、`Section` 呼叫。
+
+**模態視窗：** 置中顯示並加上遮罩，開啟期間會封鎖主視窗和按鍵綁定。切換鍵仍可隱藏整個介面。
+
+```lua
+local Modal = Window:PopupModal({ Title = "確認?" })
+Modal:AddLabel("確定要刪除嗎？")
+Modal:AddToggle({ Title = "下次不再詢問", Default = false })
+
+local Row = Modal:AddRow()
+Row:AddButton({ Title = "確認", Style = "Primary", Callback = function() Modal:ClosePopup() end })
+Row:AddButton({ Title = "取消", Callback = function() Modal:ClosePopup() end })
+```
+
+在模態裡再呼叫 `PopupModal` 會往上堆疊一層。
+
+**彈出選單：** 顯示在元素下方，放不下時翻到上方，並會跟著元素移動。
+
+```lua
+local menuBtn, Popup
+menuBtn = Section:AddButton({
+    Title = "更多",
+    Callback = function()
+        if Popup and Popup.IsOpen then   -- 再點一次按鈕就關閉
+            Popup:ClosePopup()
+            return
+        end
+        Popup = Window:PopupCanvas({
+            RelativeTo = menuBtn,    -- 控件物件或 GuiObject；省略時用滑鼠位置
+            MaxSizeX = 200,
+            AutoClose = true,
+            OnClosed = function() print("已關閉") end,
+        })
+        Popup:AddButton({ Title = "選項", Callback = function() Popup:ClosePopup() end })
+    end,
+})
+```
+
+**參數：**
+
+| 參數 | 適用 | 預設值 | 說明 |
+|---|---|---|---|
+| `Title` | 兩者 | — | 標題；`PopupModal` 也可以直接傳字串 |
+| `RelativeTo` | Canvas | 滑鼠位置 | 錨點，錨點被銷毀時彈窗會關閉 |
+| `Width` | 兩者 | 模態 340；選單為錨點寬度，無錨點時 180 | 寬度，會再套用 `MinSizeX`、`MaxSizeX` |
+| `MinSizeX` / `MaxSizeX` | 兩者 | `100` / 不限 | 寬度範圍 |
+| `MaxSizeY` | 兩者 | 模態僅受螢幕限制；選單 240 | 內容最大高度，超過時可捲動 |
+| `AutoClose` | 兩者 | `false` | 點擊彈窗外部時關閉（點錨點不算外部） |
+| `Visible` | 兩者 | `true` | 初始是否顯示 |
+| `NoClose` | Modal | `false` | 隱藏右上角的 × |
+| `OnClosed` | 兩者 | — | 關閉時呼叫 |
+
+**方法與屬性：**
+
+| 名稱 | 說明 |
+|---|---|
+| `:ClosePopup()` | 關閉並移除，同時清除內部控件的 `Flag` 與按鍵綁定 |
+| `:SetPopupVisible(bool)` | 顯示或隱藏，不移除 |
+| `:UpdatePosition()` | 重新計算位置 |
+| `:UpdateScale()` | 重新計算尺寸 |
+| `.IsOpen` | 是否尚未關閉 |
+
+- 每次呼叫都會建立新的彈窗，所以要像上面的範例一樣保留變數並判斷 `IsOpen`，否則重複點擊會疊出多個。
+- 內部控件的 `Flag` 只在彈窗開啟期間有效，關閉後不會被 `SaveConfig` 存入。
 
 ### AddChips 標籤選擇
 

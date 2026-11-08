@@ -45,6 +45,7 @@ end
 local TweenService = getService("TweenService")
 local UserInputService = getService("UserInputService")
 local RunService = getService("RunService")
+local GuiService = getService("GuiService")
 local HttpService = getService("HttpService")
 local TextService = getService("TextService")
 local Players = getService("Players")
@@ -1970,6 +1971,7 @@ function SenkoUI:CreateWindow(opts)
         AnchorPoint = Vector2.new(1, 1),
         Position = UDim2.new(1, -16, 1, -16),
         Size = UDim2.new(0, 290, 1, -32),
+        ZIndex = 90, -- 在彈出視窗之上，模態開啟時通知仍看得到
         Parent = gui,
     })
     new("UIListLayout", {
@@ -1981,6 +1983,18 @@ function SenkoUI:CreateWindow(opts)
     })
     self._toasts = toasts
     self._toastOrder = 0
+
+    -- ===== 彈出視窗層 =====
+    -- 掛在 gui 而非 Main：CanvasGroup 會裁切內容，且 _setFlat 會搬動 Main 的子物件
+    self._popupLayer = new("Frame", {
+        Name = "Popups",
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        ZIndex = 50,
+        Parent = gui,
+    })
+    self._popups = {}
+    self._modalBlocking = false
 
     -- ===== 手機 / 最小化懸浮按鈕 =====
     local floating = new("TextButton", {
@@ -2047,6 +2061,10 @@ function SenkoUI:CreateWindow(opts)
         end
         if input.KeyCode == self.toggleKey then
             self:Toggle()
+            return
+        end
+        -- 模態開啟期間暫停按鍵綁定；切換鍵不受限，可隱藏整個介面
+        if self._modalBlocking and self.Visible then
             return
         end
         for _, kb in ipairs(self._keybinds) do
@@ -2574,6 +2592,7 @@ function Window:Minimize()
     end
     self:_setFlat(false)
     self.Visible = false
+    self._popupLayer.Visible = false
     tween(self.Main, { GroupTransparency = 1 }, 0.28, Enum.EasingStyle.Quint)
     tween(self._mainScale, { Scale = 0.9 }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
     tween(self.Shadow, { ImageTransparency = 1 }, 0.25)
@@ -2591,6 +2610,7 @@ function Window:Restore()
     end
     self.Visible = true
     self.Holder.Visible = true
+    self._popupLayer.Visible = true
     self._mainScale.Scale = 0.94
     tween(self.Main, { GroupTransparency = 0 }, 0.32)
     tween(self._mainScale, { Scale = 1 }, 0.4, Enum.EasingStyle.Back)
@@ -2665,6 +2685,10 @@ function Window:Destroy()
     self._destroyed = true
     fireHook("WindowDestroyed", self)
     openWindows[self] = nil
+    -- 彈窗的連線不在 _connections 裡，要先關閉才會斷開
+    for i = #self._popups, 1, -1 do
+        self._popups[i]:ClosePopup()
+    end
     self:_setFlat(false)
     tween(self.Main, { GroupTransparency = 1 }, 0.25)
     tween(self._mainScale, { Scale = 0.92 }, 0.25)
@@ -2970,7 +2994,7 @@ end
 local ELEMENT_METHODS = {
     "AddToggle", "AddSlider", "AddSegment", "AddDropdown", "AddButton", "AddKeybind",
     "AddInput", "AddChips", "AddLabel", "AddParagraph", "AddDivider",
-    "AddProgress", "AddStats", "AddColorPicker", "AddSlots", "AddConsole",
+    "AddProgress", "AddStats", "AddColorPicker", "AddSlots", "AddConsole", "AddRow",
 }
 for _, name in ipairs(ELEMENT_METHODS) do
     Tab[name] = function(self, ...)
@@ -3076,6 +3100,403 @@ function Section:_row(height)
         LayoutOrder = self._order,
         Parent = self.Body,
     })
+end
+
+-- ---------- 橫向排列 ----------
+-- 控件會把列寬補間回 100%（例如下拉選單展開），所以寬度放在外層 cell，控件的列留在裡面
+local RowSection = setmetatable({}, { __index = Section })
+RowSection.__index = RowSection
+
+function RowSection:_row(height)
+    self._order = self._order + 1
+    local cell = new("Frame", {
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = self._order,
+        Parent = self.Body,
+    })
+    table.insert(self._cells, cell)
+    local count = #self._cells
+    for _, c in ipairs(self._cells) do
+        c.Size = UDim2.new(1 / count, -self._gap * (count - 1) / count, 0, 0)
+    end
+    return new("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, height),
+        Parent = cell,
+    })
+end
+
+function Section:AddRow(opts)
+    opts = opts or {}
+    local gap = opts.Gap or 8
+    local frame = self:_row(0)
+    frame.AutomaticSize = Enum.AutomaticSize.Y
+    new("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, gap),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = frame,
+    })
+    return setmetatable({
+        Window = self.Window,
+        Tab = self.Tab,
+        Body = frame,
+        Frame = frame,
+        _order = 0,
+        _cells = {},
+        _gap = gap,
+    }, RowSection)
+end
+
+-- ============================================================
+-- 彈出視窗（PopupModal 模態 / PopupCanvas 跟隨元素）
+-- 本身就是 Section，所有 AddXxx 控件都能直接用
+-- ============================================================
+local Popup = setmetatable({}, { __index = Section })
+Popup.__index = Popup
+
+local function removeValue(list, value)
+    for i = #list, 1, -1 do
+        if list[i] == value then
+            table.remove(list, i)
+        end
+    end
+end
+
+local function pruneDestroyed(list)
+    for i = #list, 1, -1 do
+        if list[i].obj.Parent == nil then
+            table.remove(list, i)
+        end
+    end
+end
+
+local function pointInside(obj, pos)
+    local p, s = obj.AbsolutePosition, obj.AbsoluteSize
+    return pos.X >= p.X and pos.X <= p.X + s.X and pos.Y >= p.Y and pos.Y <= p.Y + s.Y
+end
+
+-- 只有「顯示中的模態」才封鎖主視窗；Interactable 連捲動與拖曳一併擋下
+function Window:_refreshModal()
+    local blocking = false
+    for _, p in ipairs(self._popups) do
+        if p._modal and p._root.Visible then
+            blocking = true
+            break
+        end
+    end
+    self._modalBlocking = blocking
+    self.Holder.Interactable = not blocking
+end
+
+local function createPopup(win, opts, modal)
+    local top = win._popups[#win._popups]
+    local popup = setmetatable({}, Popup)
+    popup.IsOpen = true
+    popup.OnClosed = opts.OnClosed
+    popup._real = win
+    popup._modal = modal
+    popup._order = 0
+    popup._z = top and top._z + 1 or 1
+    popup._conns, popup._themeFns = {}, {}
+    popup._layer = win._popupLayer
+
+    -- 給控件用的 Window：其餘都轉給真正的視窗，只把連線與主題監聽記在彈窗上，關閉時才收得回來
+    popup.Window = setmetatable({
+        _real = win,
+        _conn = function(_, connection)
+            table.insert(popup._conns, connection)
+            return connection
+        end,
+        _onTheme = function(_, fn)
+            table.insert(popup._themeFns, fn)
+            table.insert(win._listeners, fn)
+            pcall(fn, win.palette, true)
+        end,
+    }, { __index = win, __newindex = win })
+
+    local anchor = opts.RelativeTo
+    if type(anchor) == "table" then
+        anchor = anchor.Row or anchor.Frame
+    end
+    if typeof(anchor) ~= "Instance" then
+        anchor = nil
+    end
+    popup._anchor = anchor
+    if not anchor then
+        popup._point = UserInputService:GetMouseLocation() - (GuiService:GetGuiInset())
+    end
+
+    local root
+    if modal then
+        root = new("TextButton", { -- 按鈕才接得住點擊，不會穿透到遊戲
+            Text = "",
+            AutoButtonColor = false,
+            BackgroundColor3 = Color3.new(0, 0, 0),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Size = UDim2.fromScale(1, 1),
+            ZIndex = popup._z,
+            Parent = win._popupLayer,
+        })
+    else
+        root = new("Frame", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(0, -4),
+            Size = UDim2.fromScale(1, 1),
+            ZIndex = popup._z,
+            Parent = win._popupLayer,
+        })
+    end
+    popup._root = root
+
+    local card = new("Frame", {
+        Name = "Popup",
+        Active = true,
+        AnchorPoint = modal and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
+        Position = modal and UDim2.new(0.5, 0, 0.5, 8) or UDim2.new(),
+        BorderSizePixel = 0,
+        Parent = root,
+    })
+    win:_bg(card, "toast")
+    win:_corner(card, "cardRadius")
+    win:_stroke(card, "cardStroke", 1)
+    local uiScale = new("UIScale", { Scale = win._holderScale.Scale, Parent = card })
+    popup._card = card
+    popup._scale = uiScale
+    popup.Frame = card
+
+    local hasTitle = opts.Title and opts.Title ~= ""
+    local closable = modal and opts.NoClose ~= true
+    local headerH = (hasTitle or closable) and 38 or 0
+    if hasTitle then
+        win:_label(card, opts.Title, 13.5, "text", {
+            Font = FONT_BOLD,
+            Position = UDim2.fromOffset(14, 0),
+            Size = UDim2.new(1, closable and -44 or -28, 0, headerH),
+            TextTruncate = Enum.TextTruncate.AtEnd,
+        })
+    end
+    if closable then
+        local closeBtn = new("TextButton", {
+            Text = "",
+            AutoButtonColor = false,
+            BackgroundTransparency = 1,
+            AnchorPoint = Vector2.new(1, 0),
+            Position = UDim2.new(1, -6, 0, 5),
+            Size = UDim2.fromOffset(28, 28),
+            Parent = card,
+        })
+        win:_label(closeBtn, "×", 18, "text3", {
+            Size = UDim2.fromScale(1, 1),
+            TextXAlignment = Enum.TextXAlignment.Center,
+        })
+        closeBtn.MouseButton1Click:Connect(function()
+            popup:ClosePopup()
+        end)
+    end
+
+    local bodyPad = modal and 14 or 8
+    local body = new("ScrollingFrame", {
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.fromOffset(0, headerH),
+        ScrollBarThickness = 2,
+        CanvasSize = UDim2.new(),
+        Parent = card,
+    })
+    win:_bind(body, "ScrollBarImageColor3", "text3")
+    pad(body, headerH > 0 and 2 or bodyPad, bodyPad, bodyPad, bodyPad)
+    local list = new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = body })
+    popup.Body = body
+
+    local baseWidth = opts.Width
+    if not baseWidth then
+        if modal then
+            baseWidth = 340
+        elseif anchor then
+            baseWidth = anchor.AbsoluteSize.X / math.max(uiScale.Scale, 0.01)
+        else
+            baseWidth = 180
+        end
+    end
+    local maxWidth = opts.MaxSizeX or math.huge
+    local width = math.clamp(baseWidth, math.min(opts.MinSizeX or 100, maxWidth), maxWidth)
+    local maxBody = opts.MaxSizeY or (modal and math.huge or 240)
+
+    -- AbsoluteContentSize 已含 UIScale，要換算回未縮放的座標
+    function popup:UpdateScale()
+        uiScale.Scale = win._holderScale.Scale
+        local s = math.max(uiScale.Scale, 0.01)
+        local content = list.AbsoluteContentSize.Y / s + (headerH > 0 and 2 or bodyPad) + bodyPad
+        local room = win._popupLayer.AbsoluteSize.Y / s - 32 - headerH
+        local h = math.max(0, math.min(content, maxBody, room))
+        body.CanvasSize = UDim2.fromOffset(0, content)
+        body.Size = UDim2.new(1, 0, 0, h)
+        card.Size = UDim2.fromOffset(width, headerH + h)
+        self:UpdatePosition()
+    end
+
+    local scope = popup.Window
+    scope:_conn(list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        popup:UpdateScale()
+    end))
+    scope:_conn(win._holderScale:GetPropertyChangedSignal("Scale"):Connect(function()
+        popup:UpdateScale()
+    end))
+    scope:_conn(win._popupLayer:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        popup:UpdateScale()
+    end))
+    if anchor then
+        scope:_conn(anchor:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+            popup:UpdatePosition()
+        end))
+        scope:_conn(anchor.Destroying:Connect(function()
+            popup:ClosePopup()
+        end))
+    end
+    if opts.AutoClose then
+        scope:_conn(UserInputService.InputBegan:Connect(function(input)
+            if not isPress(input) or not root.Visible or not win._popupLayer.Visible then
+                return
+            end
+            local pos = input.Position
+            if pointInside(card, pos) or (anchor and pointInside(anchor, pos)) then
+                return
+            end
+            -- 點在上層彈窗內不算外部；上層是模態時這一下也輪不到這裡
+            for i = #win._popups, 1, -1 do
+                local other = win._popups[i]
+                if other == popup then
+                    break
+                end
+                if other._modal or pointInside(other._card, pos) then
+                    return
+                end
+            end
+            popup:ClosePopup()
+        end))
+    end
+
+    table.insert(win._popups, popup)
+    root.Visible = opts.Visible ~= false
+    win:_refreshModal()
+    popup:UpdateScale()
+    if modal then
+        tween(root, { BackgroundTransparency = 0.5 }, 0.2)
+        tween(card, { Position = UDim2.fromScale(0.5, 0.5) }, 0.24)
+    else
+        tween(root, { Position = UDim2.new() }, 0.16)
+    end
+    return popup
+end
+
+function Window:PopupModal(opts)
+    if type(opts) == "string" then
+        opts = { Title = opts }
+    end
+    return createPopup(self._real or self, opts or {}, true)
+end
+
+function Window:PopupCanvas(opts)
+    return createPopup(self._real or self, opts or {}, false)
+end
+
+function Section:PopupModal(opts)
+    return self.Window:PopupModal(opts)
+end
+
+function Section:PopupCanvas(opts)
+    return self.Window:PopupCanvas(opts)
+end
+
+-- 分頁直接轉給視窗，不經過 _default()，才不會多出一張空卡片
+Tab.PopupModal = Section.PopupModal
+Tab.PopupCanvas = Section.PopupCanvas
+
+-- 跟隨錨點（無錨點時用開啟當下的滑鼠位置）；下方放不下就翻到上方，並夾在螢幕內
+function Popup:UpdatePosition()
+    if self._modal then
+        return
+    end
+    local layer, card = self._layer, self._card
+    local origin, screen = layer.AbsolutePosition, layer.AbsoluteSize
+    local s = self._scale.Scale
+    local w, h = card.Size.X.Offset * s, card.Size.Y.Offset * s
+    local x, top, bottom
+    if self._anchor then
+        local p = self._anchor.AbsolutePosition
+        x = p.X - origin.X
+        top = p.Y - origin.Y
+        bottom = top + self._anchor.AbsoluteSize.Y
+    else
+        x = self._point.X - origin.X
+        top = self._point.Y - origin.Y
+        bottom = top
+    end
+    local y = bottom + 4
+    if y + h > screen.Y - 8 and top - 4 - h >= 8 then
+        y = top - 4 - h
+    end
+    card.Position = UDim2.fromOffset(
+        math.clamp(x, 8, math.max(8, screen.X - w - 8)),
+        math.clamp(y, 8, math.max(8, screen.Y - h - 8))
+    )
+end
+
+function Popup:SetPopupVisible(visible)
+    if not self.IsOpen then
+        return
+    end
+    self._root.Visible = visible and true or false
+    self._real:_refreshModal()
+    if visible then
+        self:UpdateScale()
+    end
+end
+
+function Popup:ClosePopup()
+    if not self.IsOpen then
+        return
+    end
+    self.IsOpen = false
+    local win, root, card = self._real, self._root, self._card
+    removeValue(win._popups, self)
+    win:_refreshModal()
+
+    for _, connection in ipairs(self._conns) do
+        connection:Disconnect()
+    end
+    for _, fn in ipairs(self._themeFns) do
+        removeValue(win._listeners, fn)
+    end
+    -- 內部控件的 Flag 與按鍵綁定都在彈窗外，不清掉會被 SaveConfig 存到或繼續觸發
+    for flag, el in pairs(SenkoUI.Options) do
+        if el.Row and el.Row:IsDescendantOf(root) then
+            SenkoUI.Options[flag] = nil
+            SenkoUI.Flags[flag] = nil
+        end
+    end
+    for i = #win._keybinds, 1, -1 do
+        local row = win._keybinds[i].Row
+        if row and row:IsDescendantOf(root) then
+            table.remove(win._keybinds, i)
+        end
+    end
+
+    local function finish()
+        root:Destroy()
+        pruneDestroyed(win._binds)
+        pruneDestroyed(win._texts)
+    end
+    if self._modal then
+        tween(card, { Position = UDim2.new(0.5, 0, 0.5, 8) }, 0.14)
+        tweenThen(root, { BackgroundTransparency = 1 }, 0.14, nil, nil, finish)
+    else
+        tweenThen(root, { Position = UDim2.fromOffset(0, -4) }, 0.12, nil, nil, finish)
+    end
+    safeCall(self.OnClosed)
 end
 
 -- 控件共用：註冊旗標

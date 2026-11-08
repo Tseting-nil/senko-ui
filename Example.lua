@@ -72,6 +72,52 @@ Actions:AddButton({
     end,
 })
 
+local PopupRow = Actions:AddRow()
+
+PopupRow:AddButton({
+    Title = "模態視窗",
+    Callback = function()
+        local Modal = Window:PopupModal({ Title = "確認?" })
+        Modal:AddLabel("確定要刪除嗎？")
+        Modal:AddToggle({ Title = "下次不再詢問", Default = false })
+        local Row = Modal:AddRow()
+        Row:AddButton({
+            Title = "確認",
+            Style = "Primary",
+            Callback = function()
+                Modal:ClosePopup()
+            end,
+        })
+        Row:AddButton({
+            Title = "取消",
+            Callback = function()
+                Modal:ClosePopup()
+            end,
+        })
+    end,
+})
+
+local menuButton, Menu
+menuButton = PopupRow:AddButton({
+    Title = "彈出選單",
+    Callback = function()
+        if Menu and Menu.IsOpen then
+            Menu:ClosePopup()
+            return
+        end
+        Menu = Window:PopupCanvas({ RelativeTo = menuButton, AutoClose = true })
+        for _, name in ipairs({ "選項一", "選項二", "選項三" }) do
+            Menu:AddButton({
+                Title = name,
+                Callback = function()
+                    Window:Notify({ Title = "彈出選單", Content = name, Duration = 2 })
+                    Menu:ClosePopup()
+                end,
+            })
+        end
+    end,
+})
+
 -- ============================================================
 -- 視覺：下拉、標籤、輸入框、色彩選擇器
 -- ============================================================
