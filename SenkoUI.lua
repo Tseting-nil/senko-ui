@@ -3517,6 +3517,11 @@ function Section:AddDropdown(opts)
     opts = opts or {}
     local win = self.Window
     local options = opts.Options or opts.Values or {}
+    -- Options 可傳函式：不在建立時呼叫，每次展開才取得最新清單
+    local optionsSource = type(options) == "function" and options or nil
+    if optionsSource then
+        options = {}
+    end
     local multi = opts.Multi == true
     local CLOSED_H = 58
     local OPTION_H = 28
@@ -3611,6 +3616,25 @@ function Section:AddDropdown(opts)
         return math.min(#options, opts.MaxVisible or 6) * (OPTION_H + 2) + 8
     end
 
+    -- 呼叫 Options 函式更新清單；失敗時保留舊清單。回傳內容與目前畫面上的列是否不同
+    local function pullOptions()
+        local ok, result = pcall(optionsSource)
+        if not ok or type(result) ~= "table" then
+            warn("[SenkoUI] 下拉選單 Options 函式錯誤：" .. (ok and "必須回傳陣列" or tostring(result)))
+            return false
+        end
+        options = result
+        if #result ~= #optionRows then
+            return true
+        end
+        for i, v in ipairs(result) do
+            if v ~= optionRows[i].value then
+                return true
+            end
+        end
+        return false
+    end
+
     local function setOpen(v)
         open = v
         local h = open and (CLOSED_H + 4 + listHeight()) or CLOSED_H
@@ -3687,7 +3711,19 @@ function Section:AddDropdown(opts)
         refreshOptions(true)
     end
 
+    local pulling = false -- 函式可能 yield，取得清單期間忽略重複點擊
     field.MouseButton1Click:Connect(function()
+        if pulling then
+            return
+        end
+        if not open and optionsSource then
+            pulling = true
+            -- 只在內容有變時重建，避免每次展開都累積主題綁定
+            if pullOptions() then
+                build()
+            end
+            pulling = false
+        end
         setOpen(not open)
     end)
     win:_onTheme(function(_, instant)
@@ -3713,8 +3749,18 @@ function Section:AddDropdown(opts)
         end
     end
 
+    -- newOptions：陣列 = 改為固定清單；函式 = 改為展開時呼叫；nil = 有函式時立即重新呼叫
     function el:Refresh(newOptions, keepValue)
-        options = newOptions or {}
+        if type(newOptions) == "function" then
+            optionsSource = newOptions
+        elseif newOptions ~= nil then
+            optionsSource = nil
+        end
+        if optionsSource then
+            pullOptions()
+        else
+            options = newOptions or {}
+        end
         if not keepValue then
             if multi then
                 self.Value = {}

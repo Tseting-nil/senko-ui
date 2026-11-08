@@ -306,6 +306,28 @@ local dd = Section:AddDropdown({
 dd:Refresh({ "A", "B", "C" }, keepValue)   -- 更新選項
 ```
 
+`Options` 也可以傳函式，每次展開時才呼叫，用來顯示會變動的清單（例如玩家名單）：
+
+```lua
+local dd = Section:AddDropdown({
+    Title = "鎖定敵人",
+    Options = function()     -- 必須回傳陣列
+        local names = {}
+        for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+            table.insert(names, plr.Name)
+        end
+        return names
+    end,
+    Callback = function(v) end,
+})
+dd:Refresh(nil, true)        -- 不用展開，立即重新呼叫函式（true = 保留目前選取）
+dd:Refresh(otherFunction, true)   -- 換成另一個函式；傳陣列則改回固定清單
+```
+
+- 要傳函式本身：寫 `Options = GetAllplayer`，不要加括號。`GetAllplayer()` 會在建立時呼叫一次，之後就是固定清單。
+- 函式出錯或沒有回傳陣列時，會在主控台警告，並保留上一次的清單。
+- 已選取的值不在新清單中時不會被清除，也不會觸發 `Callback`。
+
 ### AddChips 標籤選擇
 
 ```lua
