@@ -1,0 +1,28 @@
+{
+    "source": "plugins/Endfield/Si_1/character.json",
+    "creator": "X：默椏 Myoasis",
+    "description": "木蘭與青蝶 · 淺綠與金穗",
+    "description_en": "Magnolia and blue butterflies · Pale green and gold tassels",
+    "key": "Si_1",
+    "name": "祀",
+    "name_en": "Si",
+    "tag": "ENDFIELD",
+    "glyph": "祀",
+    "shape": "diamond",
+    "dim": 0.6,
+    "particle": "petal",
+    "constellation": "A R K N I G H T S   E N D F I E L D",
+    "palette": {
+        "win0": "#14231C", "win1": "#2B4335",
+        "winStroke": "#DCE9D2", "hairline": "#DCE9D2",
+        "sidebar": "#111E18", "card": "#1C3228", "cardStroke": "#BBD6BE",
+        "text": "#F5FAF2", "text2": "#D5E4D3", "text3": "#A3BBA6",
+        "accent": "#A9E0A6", "accent2": "#E9D083",
+        "segTrack": "#0A1510", "segPill": "#C6EBC3", "field": "#EDF7E9", "fieldStroke": "#C1DBC0",
+        "good": "#A5E5B4", "warn": "#F0D27C", "toast": "#111E18",
+        "radius": 12, "cardRadius": 9
+    },
+    "images": [
+        "si-1.jpg"
+    ]
+}

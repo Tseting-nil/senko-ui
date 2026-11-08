@@ -21,7 +21,8 @@
             "label_en": "Endfield",
             "characters": [
                 "Rossi",
-                "Si"
+                "Si",
+                "Si_1"
             ],
             "default": false
         },
