@@ -378,6 +378,13 @@ local LOCALES = {
         ["plugin.clearedContent"] = "%s：刪除 %d 個檔案",
         ["plugin.noDelfile"] = "目前執行器不支援 delfile，無法清除快取；可手動刪除 workspace\\%s\\assets 資料夾。",
         ["plugin.note"] = "開啟即下載該插件的角色主題與壁紙並加入主題庫；關閉立即移除。已下載的檔案要按清除才會刪掉。",
+        ["plugin.update"] = "檢查插件更新",
+        ["plugin.updating"] = "檢查更新中 %d/%d",
+        ["plugin.updateNone"] = "插件已是最新",
+        ["plugin.updateDone"] = "更新 %d、新增 %d、移除 %d 位角色",
+        ["plugin.updateFailed"] = "%d 個項目下載失敗，詳見主控台（F9）",
+        ["plugin.updateNew"] = "發現 %d 個新插件，重新執行腳本後會出現在插件管理",
+        ["plugin.updateError"] = "檢查更新失敗，詳見主控台（F9）",
         ["look.fontSize"] = "文字大小",
         ["look.animations"] = "介面動畫",
         ["look.animationsDesc"] = "關閉後所有過渡改為即時切換",
@@ -465,6 +472,13 @@ local LOCALES = {
         ["plugin.clearedContent"] = "%s: %d files deleted",
         ["plugin.noDelfile"] = "This executor lacks delfile, so the cache can't be cleared here; delete workspace\\%s\\assets manually.",
         ["plugin.note"] = "Turning a plugin on downloads its character themes and wallpapers into the library; turning it off removes them right away. Downloaded files stay until you clear them.",
+        ["plugin.update"] = "Check for plugin updates",
+        ["plugin.updating"] = "Checking %d/%d",
+        ["plugin.updateNone"] = "Plugins are up to date",
+        ["plugin.updateDone"] = "%d updated, %d added, %d removed",
+        ["plugin.updateFailed"] = "%d items failed to download – see the console (F9)",
+        ["plugin.updateNew"] = "%d new plugins found – re-run the script to see them under Plugins",
+        ["plugin.updateError"] = "Update check failed – see the console (F9)",
         ["look.fontSize"] = "Text size",
         ["look.animations"] = "Animations",
         ["look.animationsDesc"] = "When off, every transition is instant",
@@ -520,7 +534,7 @@ end
 -- 圖片資源：HttpGet 下載 → writefile 快取 → getcustomasset 取得 rbxasset 位址
 -- （ImageLabel 不能直接吃 http 網址，必須經過執行器的 getcustomasset）
 -- ============================================================
-local Assets = { cache = {}, pending = {}, folders = {} }
+local Assets = { cache = {}, pending = {}, folders = {}, downloads = 0 }
 Assets.getAsset = getcustomasset or getsynasset
 Assets.available = FS.available and type(Assets.getAsset) == "function"
 
@@ -530,6 +544,55 @@ local function urlKey(url)
         h = (h * 31 + url:byte(i)) % 2147483647
     end
     return tostring(h)
+end
+
+-- 確保網址的圖片已在本機快取（已存在就略過），回傳檔案路徑
+local function downloadToCache(url, folder)
+    FS.ensureFolder(SenkoUI.Folder)
+    FS.ensureFolder(SenkoUI.Folder .. "/assets")
+    local name = ((url:match("([^/?#]+)$") or "image"):gsub("[^%w%._%-]", "_"))
+    -- 轉檔服務的網址沒有副檔名，補上 .png（部分執行器的 getcustomasset 靠副檔名判斷格式）
+    local lower = name:lower()
+    if not (lower:match("%.png$") or lower:match("%.jpe?g$")) then
+        name = "image.png"
+    end
+    local dir = SenkoUI.Folder .. "/assets"
+    if type(folder) == "string" and folder ~= "" then
+        dir = dir .. "/" .. folder:gsub("[^%w%._%-]", "_")
+        FS.ensureFolder(dir)
+    end
+    local path = dir .. "/" .. urlKey(url) .. "_" .. name
+    if not isfile(path) then
+        local data = game:HttpGet(url)
+        local head = type(data) == "string" and data:sub(1, 4) or ""
+        -- 只接受 PNG / JPG，避免把 404 頁面寫成圖片
+        if head ~= "\137PNG" and head:sub(1, 3) ~= "\255\216\255" then
+            error("不是有效的 PNG / JPG：" .. url)
+        end
+        writefile(path, data)
+        Assets.downloads = Assets.downloads + 1
+    end
+    return path
+end
+
+-- 只下載到快取、不呼叫 getcustomasset：背景補下載用，避免每次啟動都載入所有大圖。回傳是否成功
+function Assets.prefetch(url, folder)
+    if not url or url == "" or not Assets.available or not url:match("^https?://") then
+        return false
+    end
+    if Assets.cache[url] then
+        return true
+    end
+    while Assets.pending[url] do
+        task.wait(0.1)
+    end
+    Assets.pending[url] = true
+    local ok, err = pcall(downloadToCache, url, folder)
+    Assets.pending[url] = nil
+    if not ok then
+        warn("[SenkoUI] 圖片下載失敗：" .. tostring(err))
+    end
+    return ok
 end
 
 -- folder：快取子資料夾（插件名稱），讓插件管理能分別計算 / 清除各插件下載的圖片
@@ -558,30 +621,7 @@ function Assets.load(url, folder)
             result = Assets.getAsset(url)
             return
         end
-        FS.ensureFolder(SenkoUI.Folder)
-        FS.ensureFolder(SenkoUI.Folder .. "/assets")
-        local name = ((url:match("([^/?#]+)$") or "image"):gsub("[^%w%._%-]", "_"))
-        -- 轉檔服務的網址沒有副檔名，補上 .png（部分執行器的 getcustomasset 靠副檔名判斷格式）
-        local lower = name:lower()
-        if not (lower:match("%.png$") or lower:match("%.jpe?g$")) then
-            name = "image.png"
-        end
-        local dir = SenkoUI.Folder .. "/assets"
-        if type(folder) == "string" and folder ~= "" then
-            dir = dir .. "/" .. folder:gsub("[^%w%._%-]", "_")
-            FS.ensureFolder(dir)
-        end
-        local path = dir .. "/" .. urlKey(url) .. "_" .. name
-        if not isfile(path) then
-            local data = game:HttpGet(url)
-            local head = type(data) == "string" and data:sub(1, 4) or ""
-            -- 只接受 PNG / JPG，避免把 404 頁面寫成圖片
-            if head ~= "\137PNG" and head:sub(1, 3) ~= "\255\216\255" then
-                error("不是有效的 PNG / JPG：" .. url)
-            end
-            writefile(path, data)
-        end
-        result = Assets.getAsset(path)
+        result = Assets.getAsset(downloadToCache(url, folder))
     end)
     Assets.pending[url] = nil
     if ok and result then
@@ -5888,6 +5928,7 @@ function Window:AddThemeTab(opts)
                 task.spawn(fn)
             end
         end
+        win._updateCacheLabel = updateCache -- 背景補下載完成後更新清除按鈕的大小
 
         for _, entry in ipairs(catalog) do
             local name = entry.Name
@@ -5982,13 +6023,15 @@ function Window:AddThemeTab(opts)
             win:_onLanguage(refreshText)
             -- 腳本直接呼叫 EnablePlugin / DisablePlugin 時，開關跟著插件實際狀態
             table.insert(win._libraryRefreshers, function()
-                if busy then
-                    return
-                end
                 for _, e in ipairs(SenkoUI:GetPluginCatalog()) do
-                    if e.Name == name and e.Loaded ~= on then
-                        setSwitch(e.Loaded)
-                        updateCache(name)
+                    if e.Name == name then
+                        -- 檢查更新後，名稱與角色數可能已變
+                        entry.Label, entry.Characters = e.Label, e.Characters
+                        refreshText()
+                        if not busy and e.Loaded ~= on then
+                            setSwitch(e.Loaded)
+                            updateCache(name)
+                        end
                     end
                 end
             end)
@@ -6033,6 +6076,50 @@ function Window:AddThemeTab(opts)
                 end)
             end)
         end
+
+        -- 手動檢查更新：抓最新清單與 character.json，只更新有變動的主題
+        local updateButton, updateRunning
+        updateButton = pm:AddButton({
+            Title = T("plugin.update"),
+            Callback = function()
+                if updateRunning then
+                    return
+                end
+                updateRunning = true
+                updateButton:SetTitle(T("plugin.updating", 0, 0))
+                local ok, result = SenkoUI:UpdatePlugins(function(done, total)
+                    updateButton:SetTitle(T("plugin.updating", done, total))
+                end)
+                updateRunning = false
+                updateButton:SetTitle(T("plugin.update"))
+                if not ok then
+                    win:Notify({ Title = T("section.plugins"), Content = T("plugin.updateError"), Duration = 4 })
+                    return
+                end
+                local lines = {}
+                if result.updated + result.added + result.removed > 0 then
+                    table.insert(lines, T("plugin.updateDone", result.updated, result.added, result.removed))
+                end
+                if result.newPlugins > 0 then
+                    table.insert(lines, T("plugin.updateNew", result.newPlugins))
+                end
+                if result.failed > 0 then
+                    table.insert(lines, T("plugin.updateFailed", result.failed))
+                end
+                if #lines == 0 then
+                    table.insert(lines, T("plugin.updateNone"))
+                end
+                win:Notify({ Title = T("section.plugins"), Content = table.concat(lines, "\n"), Duration = 4 })
+                for _, e in ipairs(SenkoUI:GetPluginCatalog()) do
+                    updateCache(e.Name)
+                end
+            end,
+        })
+        win:_onLanguage(function()
+            if not updateRunning then
+                updateButton:SetTitle(T("plugin.update"))
+            end
+        end)
 
         -- 快取清單：各插件 + 基礎主題 + 未分類（assets 根目錄）
         local targets = {}
@@ -6663,6 +6750,8 @@ end
 
 -- 官方插件清單；LoadPlugins() 不帶參數時讀取
 SenkoUI.PluginIndex = "https://raw.githubusercontent.com/Tseting-nil/senko-ui/main/plugins/index.json"
+local pluginSources = {} -- LoadPlugins 讀過的清單來源，UpdatePlugins 會重新讀取
+local updatingPlugins = false
 
 -- 移除 JSON 裡的 // 與 /* */ 註解（略過字串內容，網址裡的 // 不受影響），讓 character.json 可以寫註解
 local function stripJsonComments(text)
@@ -6784,6 +6873,25 @@ local function fetchCharacter(entry, character)
     return data
 end
 
+-- 內容簽章：鍵先排序，同樣的內容不管從網路或快取讀取，結果都相同
+local function signatureOf(value)
+    if type(value) ~= "table" then
+        return type(value) .. ":" .. tostring(value)
+    end
+    local keys = {}
+    for k in pairs(value) do
+        table.insert(keys, k)
+    end
+    table.sort(keys, function(a, b)
+        return tostring(a) < tostring(b)
+    end)
+    local parts = {}
+    for _, k in ipairs(keys) do
+        table.insert(parts, tostring(k) .. "=" .. signatureOf(value[k]))
+    end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
 -- character.json → 主題（色票的 #RRGGBB 由 AddTheme 轉成 Color3）
 local function registerCharacter(entry, character, data)
     local images = type(data.images) == "table" and data.images or {}
@@ -6793,7 +6901,7 @@ local function registerCharacter(entry, character, data)
         end
         return { ["zh-TW"] = zh or en, en = en or zh }
     end
-    return SenkoUI:AddTheme({
+    local key = SenkoUI:AddTheme({
         Key = data.key or character,
         Name = pair(data.name or character, data.name_en),
         English = data.name_en or data.key or character,
@@ -6813,6 +6921,37 @@ local function registerCharacter(entry, character, data)
         Palette = data.palette,
         Plugin = entry.name,
     })
+    if key then
+        -- 記下角色對應的主題與內容，UpdatePlugins 用來判斷有沒有變動
+        entry.registered = entry.registered or {}
+        entry.registered[character] = { key = key, signature = signatureOf(data) }
+    end
+    return key
+end
+
+-- 下載插件所有圖片到快取（已存在就略過），不擋住啟動
+local function prefetchImages(entry, items)
+    if not Assets.available then
+        return
+    end
+    task.spawn(function()
+        local before = Assets.downloads
+        for _, item in ipairs(items) do
+            for _, file in ipairs(type(item.data.images) == "table" and item.data.images or {}) do
+                if not entry.enabled then
+                    return
+                end
+                Assets.prefetch(characterFile(entry, item.name, file), entry.name)
+            end
+        end
+        if Assets.downloads ~= before then
+            for win in pairs(openWindows) do
+                if win._updateCacheLabel then
+                    win._updateCacheLabel(entry.name)
+                end
+            end
+        end
+    end)
 end
 
 -- 讀取並註冊插件所有角色；onCharacter(角色, 資料) 每讀完一個角色呼叫一次
@@ -6854,6 +6993,9 @@ function SenkoUI:LoadPlugins(source)
         if type(src) ~= "string" then
             continue
         end
+        if not table.find(pluginSources, src) then
+            table.insert(pluginSources, src)
+        end
         for _, entry in ipairs(fetchPluginIndex(src)) do
             if findCatalog(entry.name) then
                 continue
@@ -6866,10 +7008,11 @@ function SenkoUI:LoadPlugins(source)
             entry.loaded = false
             table.insert(pluginCatalog, entry)
             if entry.enabled then
-                local keys = loadCharacters(entry)
+                local keys, items = loadCharacters(entry)
                 entry.loaded = #keys > 0
                 if entry.loaded then
                     table.insert(loaded, entry.name)
+                    prefetchImages(entry, items)
                 end
             end
         end
@@ -6908,6 +7051,225 @@ function Window:_pluginUnloaded(keys)
             warn("[SenkoUI] 更新主題庫失敗：" .. tostring(err))
         end
     end
+end
+
+-- 檢查更新後：changes = { { old = 舊 def, new = 新 def } }，只有 new 是新增、只有 old 是移除
+function Window:_pluginUpdated(changes)
+    local replaced
+    for _, change in ipairs(changes) do
+        local old, def = change.old, change.new
+        if old then
+            self._wallpapers[old.key] = nil
+        end
+        if def and WALLPAPERS[def.key] and not self._wallpaperOff[def.key] then
+            self._wallpapers[def.key] = table.clone(WALLPAPERS[def.key])
+        end
+        if old and self.theme == old then
+            if def then
+                self.theme, self.palette = def, def.palette
+                replaced = def
+            else
+                local fallback = findTheme(self.startupTheme) or THEMES[1]
+                self:SetTheme(fallback.key)
+            end
+        end
+    end
+    self:_pluginLoaded()
+    -- 正在使用的主題有變動：重新套用色票並重載壁紙
+    if replaced then
+        self:_applyTheme(false)
+        self:_saveSettings()
+        safeCall(self._onThemeChanged, replaced.key)
+        fireHook("ThemeChanged", self, replaced.key)
+    end
+end
+
+-- 從主題表移除一個主題；回傳還原用的資料，失敗時交給 restoreTheme 放回原位
+local function detachTheme(key)
+    for index, def in ipairs(THEMES) do
+        if def.key == key then
+            local listIndex = table.find(SenkoUI.Themes, key)
+            local wallpaper = WALLPAPERS[key]
+            table.remove(THEMES, index)
+            if listIndex then
+                table.remove(SenkoUI.Themes, listIndex)
+            end
+            WALLPAPERS[key] = nil
+            return { def = def, index = index, listIndex = listIndex, wallpaper = wallpaper }
+        end
+    end
+    return nil
+end
+
+local function restoreTheme(saved)
+    table.insert(THEMES, saved.index, saved.def)
+    if saved.listIndex then
+        table.insert(SenkoUI.Themes, saved.listIndex, saved.def.key)
+    end
+    WALLPAPERS[saved.def.key] = saved.wallpaper
+end
+
+-- 以新的 character.json 取代舊主題並保留排序；回傳舊 def、新 def（失敗時保留舊主題並回傳 nil）
+local function replaceCharacter(entry, character, data, registered)
+    local saved = detachTheme(registered.key)
+    if not saved then
+        return nil
+    end
+    local key = registerCharacter(entry, character, data)
+    if not key then
+        restoreTheme(saved)
+        return nil
+    end
+    -- AddTheme 會加到最後，移回原本的位置
+    local def = table.remove(THEMES)
+    table.insert(THEMES, saved.index, def)
+    if saved.listIndex then
+        table.remove(SenkoUI.Themes)
+        table.insert(SenkoUI.Themes, saved.listIndex, key)
+    end
+    return saved.def, def
+end
+
+-- 比對一個已載入插件的最新內容並套用；圖片全部下載後才替換主題，不會出現只更新一半的狀態
+local function syncPlugin(entry, tick, result, changes)
+    local items = {}
+    for _, character in ipairs(entry.characters) do
+        local data = fetchCharacter(entry, character)
+        tick(1, 0)
+        if data then
+            table.insert(items, { name = character, data = data })
+            if Assets.available and type(data.images) == "table" then
+                tick(0, #data.images)
+            end
+        else
+            result.failed = result.failed + 1
+        end
+    end
+    if Assets.available then
+        for _, item in ipairs(items) do
+            for _, file in ipairs(type(item.data.images) == "table" and item.data.images or {}) do
+                if Assets.prefetch(characterFile(entry, item.name, file), entry.name) then
+                    result.images = result.images + 1
+                else
+                    result.failed = result.failed + 1
+                end
+                tick(1, 0)
+            end
+        end
+    end
+    -- 下載期間使用者可能已關閉這個插件
+    if not entry.loaded then
+        return
+    end
+    entry.registered = entry.registered or {}
+    liveLoading = true
+    for _, item in ipairs(items) do
+        local registered = entry.registered[item.name]
+        if not registered then
+            local key = registerCharacter(entry, item.name, item.data)
+            if key then
+                table.insert(changes, { new = findTheme(key) })
+                result.added = result.added + 1
+            end
+        elseif registered.signature ~= signatureOf(item.data) then
+            local old, def = replaceCharacter(entry, item.name, item.data, registered)
+            if def then
+                table.insert(changes, { old = old, new = def })
+                result.updated = result.updated + 1
+            end
+        end
+    end
+    liveLoading = false
+    for character, registered in pairs(entry.registered) do
+        if not table.find(entry.characters, character) then
+            local saved = detachTheme(registered.key)
+            entry.registered[character] = nil
+            if saved then
+                table.insert(changes, { old = saved.def })
+                result.removed = result.removed + 1
+            end
+        end
+    end
+    entry.loaded = next(entry.registered) ~= nil
+end
+
+-- 重新讀取清單與已開啟插件的 character.json，當場更新有變動的主題，不必關閉再開啟插件
+-- onProgress(done, total)；回傳 ok, { updated, added, removed, images, failed, newPlugins }
+-- 已快取且網址相同的圖片不會重新下載；要換圖請改檔名，或先清除快取
+function SenkoUI:UpdatePlugins(onProgress)
+    if updatingPlugins then
+        return false
+    end
+    updatingPlugins = true
+    local result = { updated = 0, added = 0, removed = 0, images = 0, failed = 0, newPlugins = 0 }
+    local ok, err = pcall(function()
+        local state = FS.readJson(pluginStatePath()) or {}
+        local metaChanged = false
+        local newEntries = {}
+        for _, src in ipairs(pluginSources) do
+            for _, fresh in ipairs(fetchPluginIndex(src)) do
+                local entry = findCatalog(fresh.name)
+                if entry then
+                    if #entry.characters ~= #fresh.characters then
+                        metaChanged = true
+                    end
+                    entry.label, entry.characters, entry.default, entry.base =
+                        fresh.label, fresh.characters, fresh.default, fresh.base
+                    if entry.loaded then
+                        SenkoUI:AddGroup({ Key = entry.name, Label = entry.label, Plugin = entry.name })
+                    end
+                else
+                    local enabled = state[fresh.name]
+                    if enabled == nil then
+                        enabled = fresh.default
+                    end
+                    fresh.enabled = enabled and true or false
+                    fresh.loaded = false
+                    table.insert(pluginCatalog, fresh)
+                    table.insert(newEntries, fresh)
+                    result.newPlugins = result.newPlugins + 1
+                end
+            end
+        end
+
+        local done, total = 0, 0
+        local targets = {}
+        for _, entry in ipairs(pluginCatalog) do
+            if entry.loaded then
+                table.insert(targets, entry)
+                total = total + #entry.characters
+            end
+        end
+        local function tick(addDone, addTotal)
+            done, total = done + addDone, total + addTotal
+            if onProgress then
+                pcall(onProgress, done, total)
+            end
+        end
+        tick(0, 0)
+
+        local changes = {}
+        for _, entry in ipairs(targets) do
+            syncPlugin(entry, tick, result, changes)
+        end
+        if #changes > 0 or metaChanged then
+            for win in pairs(openWindows) do
+                win:_pluginUpdated(changes)
+            end
+        end
+        for _, entry in ipairs(newEntries) do
+            if entry.enabled then
+                SenkoUI:EnablePlugin(entry.name)
+            end
+        end
+    end)
+    liveLoading = false
+    updatingPlugins = false
+    if not ok then
+        warn("[SenkoUI] 檢查插件更新失敗：" .. tostring(err))
+        return false
+    end
+    return true, result
 end
 
 -- 開啟插件：下載所有角色的 character.json 與圖片，註冊主題並即時加入已開啟的視窗（也會記住，下次執行自動載入）
@@ -6985,6 +7347,9 @@ end
 function SenkoUI:DisablePlugin(name)
     self:SetPluginEnabled(name, false)
     local entry = findCatalog(name)
+    if entry then
+        entry.registered = {}
+    end
     local keys = {}
     for i = #THEMES, 1, -1 do
         local def = THEMES[i]

@@ -160,15 +160,27 @@ SenkoUI:LoadPlugins()
   ├─ 1. 讀取 plugins/index.json → 插件與角色清單（失敗時用 SenkoUI/plugin-index/ 快取）
   ├─ 2. 讀取 SenkoUI/plugins.json（玩家開關狀態，優先於 default）
   └─ 3. 已開啟的插件：讀取各角色 character.json → 色票轉 Color3 → 註冊主題
-         （圖片在切換到該主題時才下載）
+         → 在背景補下載快取裡沒有的圖片，不會擋住介面啟動
 
 主題頁「插件管理」開關
   ├─ 開啟：下載各角色 character.json → 下載 images → 註冊主題
   │        → 即時加入分類按鈕與主題卡，進度條顯示「下載中 n/N」
   └─ 關閉：立即移除主題卡、分類與壁紙設定；正在使用的主題退回啟動主題 / 曜石
+
+主題頁「檢查插件更新」按鈕（SenkoUI:UpdatePlugins）
+  ├─ 重新讀取 index.json 與已開啟插件的 character.json，下載缺少的圖片
+  └─ 只更新有變動的角色：內容不同 → 替換；清單新增 → 加入；清單移除 → 刪除
+     正在使用的主題有變動時會當場重新套用，沒有變動的主題不受影響
 ```
 
 快取位置：角色 JSON 與圖片都在 `SenkoUI/assets/<插件名稱>/`，可在插件管理分別清除。
+
+### 上傳更新後，使用者什麼時候拿到？
+
+- **重新執行腳本或按「檢查插件更新」：** 取得新參數、新角色與新圖片，不必關閉再開啟插件。腳本執行中不會自動檢查。
+- **GitHub 延遲：** raw 檔案有約 5 分鐘快取（`max-age=300`），剛推送時可能還讀到舊檔。
+- **同檔名換圖不會更新：** 圖片以網址為快取鍵，所以換圖時要**改檔名**並更新 `images`。沿用舊檔名的話，使用者要先清除快取才看得到新圖。
+- **新插件：** 按鈕能載入新插件的主題（已開啟時），但插件管理要重新執行腳本才會出現它的開關。
 
 ---
 
@@ -179,6 +191,7 @@ SenkoUI:LoadPlugins()
 | `SenkoUI:LoadPlugins(source)` | `source`：清單網址或 workspace 路徑（字串）、多份清單（表），省略時讀取 `SenkoUI.PluginIndex`；回傳這次已載入的插件名稱。需在 `CreateWindow` 之前 |
 | `SenkoUI:EnablePlugin(name, onProgress)` | 當場開啟：`onProgress(done, total)`；回傳 `ok, { characters, images, failed }` |
 | `SenkoUI:DisablePlugin(name)` | 當場關閉並移除主題，回傳移除的主題數 |
+| `SenkoUI:UpdatePlugins(onProgress)` | 當場檢查更新：`onProgress(done, total)`；回傳 `ok, { updated, added, removed, images, failed, newPlugins }`。需要先呼叫過 `LoadPlugins`；正在檢查時會回傳 `false` |
 | `SenkoUI:SetPluginEnabled(name, bool)` | 只記錄下次執行是否載入 |
 | `SenkoUI:GetPluginCatalog()` | `{ Name, Label = { ["zh-TW"], en }, Characters, CharacterList, Enabled, Loaded }` |
 | `SenkoUI:GetCacheSize(name)` / `ClearCache(name)` | 快取大小（位元組、檔案數）/ 清除；`nil` = 未分類 |
